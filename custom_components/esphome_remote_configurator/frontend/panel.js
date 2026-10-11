@@ -253,7 +253,7 @@ select { cursor: pointer; }
 .toggle-label { font-size: 13px; color: var(--fg); }
 
 /* Type tabs */
-.type-tabs { display: flex; gap: 6px; }
+.type-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .type-tab { flex: 1; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--fg2); font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; transition: all .15s; font-family: var(--sans); }
 .type-tab:hover { border-color: var(--border2); color: var(--fg); }
 .type-tab.active.light    { border-color: var(--warn);   color: var(--warn);   background: #d2992210; }
