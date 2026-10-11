@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
@@ -17,7 +18,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     js_path = Path(__file__).parent / "frontend" / _PANEL_JS
 
     # Serve the Web Component JS file
-    hass.http.register_static_path(_PANEL_URL, str(js_path), cache_headers=False)
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(_PANEL_URL, str(js_path), cache_headers=False)]
+    )
 
     # Register the panel (shows in HA sidebar)
     frontend.async_register_built_in_panel(
