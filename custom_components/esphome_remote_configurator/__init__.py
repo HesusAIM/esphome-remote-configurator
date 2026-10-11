@@ -22,6 +22,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         [StaticPathConfig(_PANEL_URL, str(js_path), cache_headers=False)]
     )
 
+    # Cache-bust using file modification time so the HA frontend module
+    # loader always fetches a fresh copy after each update.
+    try:
+        mtime = int(js_path.stat().st_mtime)
+    except OSError:
+        mtime = 0
+    js_url_versioned = f"{_PANEL_URL}?v={mtime}"
+
     # Register the panel (shows in HA sidebar)
     frontend.async_register_built_in_panel(
         hass,
@@ -32,7 +40,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         config={
             "_panel_custom": {
                 "name": "esphome-remote-configurator-panel",
-                "js_url": _PANEL_URL,
+                "js_url": js_url_versioned,
             }
         },
         require_admin=False,
