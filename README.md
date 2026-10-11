@@ -22,7 +22,7 @@ A Home Assistant custom integration that adds a sidebar panel for configuring ES
 ### Via HACS (recommended)
 
 1. Open HACS → **Integrations** → ⋮ menu → **Custom repositories**
-2. Add `https://github.com/your-user/esphome-remote-configurator` as an **Integration**
+2. Add `https://github.com/HesusAIM/esphome-remote-configurator` as an **Integration**
 3. Find **ESPHome Remote Configurator** in HACS and click **Download**
 4. Restart Home Assistant
 5. Add to `configuration.yaml`:
