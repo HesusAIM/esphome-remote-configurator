@@ -199,9 +199,10 @@
 .device-card-name { font-size: 13px; font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .device-card-sub { font-size: 11px; color: var(--fg3); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .device-card-type { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
-.type-light   { background: #d2992210; color: var(--warn); }
-.type-switch  { background: #00d4aa10; color: var(--accent); }
-.type-climate { background: #388bfd10; color: #388bfd; }
+.type-light    { background: #d2992210; color: var(--warn); }
+.type-switch   { background: #00d4aa10; color: var(--accent); }
+.type-climate  { background: #388bfd10; color: #388bfd; }
+.type-shortcut { background: #9e6aff10; color: #9e6aff; }
 .device-del-btn {
   opacity: 0; padding: 3px 6px; background: none; border: none;
   color: var(--danger); cursor: pointer; font-size: 14px;
@@ -255,9 +256,10 @@ select { cursor: pointer; }
 .type-tabs { display: flex; gap: 6px; }
 .type-tab { flex: 1; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--fg2); font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; transition: all .15s; font-family: var(--sans); }
 .type-tab:hover { border-color: var(--border2); color: var(--fg); }
-.type-tab.active.light   { border-color: var(--warn);   color: var(--warn);   background: #d2992210; }
-.type-tab.active.switch  { border-color: var(--accent);  color: var(--accent);  background: var(--accent-bg); }
-.type-tab.active.climate { border-color: #388bfd; color: #388bfd; background: #388bfd10; }
+.type-tab.active.light    { border-color: var(--warn);   color: var(--warn);   background: #d2992210; }
+.type-tab.active.switch   { border-color: var(--accent);  color: var(--accent);  background: var(--accent-bg); }
+.type-tab.active.climate  { border-color: #388bfd; color: #388bfd; background: #388bfd10; }
+.type-tab.active.shortcut { border-color: #9e6aff; color: #9e6aff; background: #9e6aff10; }
 
 /* Icon picker */
 .icon-pair { display: flex; gap: 12px; }
@@ -409,11 +411,12 @@ select { cursor: pointer; }
                 <button class="type-tab active light"   id="typeTabLight">💡 Light</button>
                 <button class="type-tab switch"         id="typeTabSwitch">🔌 Switch</button>
                 <button class="type-tab climate"        id="typeTabClimate">🌡️ Climate</button>
+                <button class="type-tab shortcut"       id="typeTabShortcut">⚡ Shortcut</button>
               </div>
             </div>
 
-            <div class="field-group">
-              <label>Entity ID</label>
+            <div class="field-group" id="entityRow">
+              <label id="entityRowLabel">Entity ID</label>
               <div class="entity-field-wrap">
                 <input type="text" id="fEntityId" placeholder="light.my_light" spellcheck="false">
                 <button class="entity-browse-btn" id="browseBtn" title="Browse HA entities">Browse HA</button>
@@ -465,6 +468,13 @@ select { cursor: pointer; }
                     <div class="mode-chip" data-mode="auto">auto</div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div id="shortcutFields" style="display:none">
+              <div class="field-group">
+                <label>Button ID <span style="color:var(--fg3)">(physical button: sw1, sw2, sw3…)</span></label>
+                <input type="text" id="fButtonId" placeholder="sw1" spellcheck="false">
               </div>
             </div>
 
@@ -776,7 +786,7 @@ select { cursor: pointer; }
       function updateBootPageSelect() {
         const sel = $('sBootPage');
         const cur = state.settings.bootPage;
-        sel.innerHTML = state.devices.map(d =>
+        sel.innerHTML = state.devices.filter(d => d.type !== 'shortcut').map(d =>
           `<option value="${esc(d.key)}"${d.key === cur ? ' selected' : ''}>${esc(d.display_name)}</option>`
         ).join('');
       }
@@ -808,7 +818,7 @@ select { cursor: pointer; }
       }
 
       function addDevice() {
-        editingDevice = { key: '', type: 'light', entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1 };
+        editingDevice = { key: '', type: 'light', entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: '', automation_id: '' };
         selectedIndex = null;
         populateEditor(editingDevice, true);
         renderDeviceList();
@@ -835,8 +845,9 @@ select { cursor: pointer; }
         $('editorForm').style.display = '';
         $('editorTitle').textContent = isNew ? 'Add Device' : 'Edit: ' + dev.display_name;
         $('fKey').value = dev.key;
-        $('fEntityId').value = dev.entity_id;
+        $('fEntityId').value = dev.type === 'shortcut' ? (dev.automation_id || '') : (dev.entity_id || '');
         $('fDisplayName').value = dev.display_name;
+        $('fButtonId').value = dev.button_id || '';
         $('fBrightnessStep').value = dev.brightness_step || 5;
         $('fTempStep').value = dev.temp_step || 1;
         setEditorTypeUI(dev.type);
@@ -858,15 +869,20 @@ select { cursor: pointer; }
           b.classList.remove('active');
           if (b.id === 'typeTab' + cap(type)) b.classList.add('active');
         });
-        $('lightFields').style.display = type === 'light' ? '' : 'none';
-        $('climateFields').style.display = type === 'climate' ? '' : 'none';
-        $('iconFields').style.display = type === 'climate' ? 'none' : '';
+        const isShortcut = type === 'shortcut';
+        $('lightFields').style.display    = type === 'light' ? '' : 'none';
+        $('climateFields').style.display  = type === 'climate' ? '' : 'none';
+        $('shortcutFields').style.display = isShortcut ? '' : 'none';
+        $('iconFields').style.display     = (type === 'climate' || isShortcut) ? 'none' : '';
+        $('entityRowLabel').textContent   = isShortcut ? 'Automation ID' : 'Entity ID';
+        $('fEntityId').placeholder        = isShortcut ? 'automation.wakey_on (or "none")' : 'light.my_light';
         if (editingDevice) editingDevice.type = type;
       }
 
       $('typeTabLight').addEventListener('click', () => setEditorTypeUI('light'));
       $('typeTabSwitch').addEventListener('click', () => setEditorTypeUI('switch'));
       $('typeTabClimate').addEventListener('click', () => setEditorTypeUI('climate'));
+      $('typeTabShortcut').addEventListener('click', () => setEditorTypeUI('shortcut'));
 
       $('dimmableToggle').addEventListener('click', () => {
         dimmableState = !dimmableState;
@@ -890,6 +906,7 @@ select { cursor: pointer; }
         if (v.startsWith('light.')) setEditorTypeUI('light');
         else if (v.startsWith('switch.')) setEditorTypeUI('switch');
         else if (v.startsWith('climate.')) setEditorTypeUI('climate');
+        else if (v.startsWith('automation.')) setEditorTypeUI('shortcut');
       });
 
       // Climate mode chips
@@ -901,16 +918,25 @@ select { cursor: pointer; }
       function saveDevice() {
         if (!editingDevice) return;
         editingDevice.key = $('fKey').value.trim().replace(/\s+/g, '_').toLowerCase();
-        editingDevice.entity_id = $('fEntityId').value.trim();
         editingDevice.display_name = $('fDisplayName').value.trim();
-        editingDevice.brightness_step = parseInt($('fBrightnessStep').value) || 5;
-        editingDevice.temp_step = parseFloat($('fTempStep').value) || 1;
-        editingDevice.dimmable = dimmableState;
-        editingDevice.hvac_modes = [...$$('#climateModes .mode-chip.active')].map(c => c.dataset.mode);
-        if (editingDevice.hvac_modes.length === 0) editingDevice.hvac_modes = ['off'];
+        if (editingDevice.type === 'shortcut') {
+          editingDevice.automation_id = $('fEntityId').value.trim();
+          editingDevice.button_id = $('fButtonId').value.trim();
+        } else {
+          editingDevice.entity_id = $('fEntityId').value.trim();
+          editingDevice.brightness_step = parseInt($('fBrightnessStep').value) || 5;
+          editingDevice.temp_step = parseFloat($('fTempStep').value) || 1;
+          editingDevice.dimmable = dimmableState;
+          editingDevice.hvac_modes = [...$$('#climateModes .mode-chip.active')].map(c => c.dataset.mode);
+          if (editingDevice.hvac_modes.length === 0) editingDevice.hvac_modes = ['off'];
+        }
 
         if (!editingDevice.key) { alert('Key is required'); return; }
-        if (!editingDevice.entity_id) { alert('Entity ID is required'); return; }
+        if (editingDevice.type === 'shortcut') {
+          if (!editingDevice.button_id) { alert('Button ID is required (e.g. sw1)'); return; }
+        } else {
+          if (!editingDevice.entity_id) { alert('Entity ID is required'); return; }
+        }
         if (!editingDevice.display_name) { alert('Display Name is required'); return; }
 
         if (selectedIndex === null) {
@@ -1109,13 +1135,18 @@ select { cursor: pointer; }
       }
 
       function getBootPage() {
-        const key = state.settings.bootPage || (state.devices[0] && state.devices[0].key) || 'none';
+        const pages = state.devices.filter(d => d.type !== 'shortcut');
+        const key = state.settings.bootPage || (pages[0] && pages[0].key) || 'none';
         return 'page_' + key;
       }
 
       function getAllGlyphs() {
         const codes = new Set();
-        state.devices.forEach(d => { if (d.icon_on) codes.add(d.icon_on); if (d.icon_off) codes.add(d.icon_off); });
+        state.devices.forEach(d => {
+          if (d.type === 'shortcut') return;
+          if (d.icon_on) codes.add(d.icon_on);
+          if (d.icon_off) codes.add(d.icon_off);
+        });
         return [...codes].sort();
       }
 
@@ -1131,23 +1162,30 @@ select { cursor: pointer; }
           out += `  no_devices: !include espremote/devices/_no_devices_placeholder.yaml\n`;
         } else {
           devs.forEach(dev => {
+            if (dev.type === 'shortcut') {
+              out += `\n  ${dev.key}: !include\n    file: espremote/shortcut_button.yaml\n    vars:\n`;
+              out += `      button_id: "${dev.button_id || 'sw1'}"\n`;
+              out += `      automation_id: "${dev.automation_id || 'none'}"\n`;
+              return;
+            }
             const tpl = dev.type === 'climate' ? '_template_climate.yaml' : dev.type === 'switch' ? '_template_switch.yaml' : '_template_light.yaml';
             out += `\n  ${dev.key}: !include\n    file: espremote/devices/${tpl}\n    vars:\n`;
             out += `      key: "${dev.key}"\n      entity_id: "${dev.entity_id}"\n      display_name: "${dev.display_name}"\n`;
             if (dev.type === 'light') {
               out += `      brightness_step: "${dev.brightness_step || 5}"\n      dimmable: "${dev.dimmable ? 'true' : 'false'}"\n`;
-              out += `      icon_on: "F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
-              out += `      icon_off: "F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
+              out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
+              out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
             } else if (dev.type === 'switch') {
-              out += `      icon_on: "F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
-              out += `      icon_off: "F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
+              out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
+              out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
             } else if (dev.type === 'climate') {
               out += `      temp_step: "${dev.temp_step || 1}"\n      hvac_modes: "${(dev.hvac_modes || ['off', 'heat']).join(',')}"\n`;
             }
           });
         }
-        const bootKey = state.settings.bootPage || (devs[0] && devs[0].key) || '';
-        const bootIdx = devs.findIndex(d => d.key === bootKey);
+        const pages = devs.filter(d => d.type !== 'shortcut');
+        const bootKey = state.settings.bootPage || (pages[0] && pages[0].key) || '';
+        const bootIdx = pages.findIndex(d => d.key === bootKey);
         const pageIndex = bootIdx >= 0 ? bootIdx + 1 : 1;
         out += `\nesphome:\n  on_boot:\n    then:\n      - display.page.show: ${getBootPage()}\n      - lambda: id(current_page_index) = ${pageIndex};\n      - component.update: oled\n`;
         return out;
