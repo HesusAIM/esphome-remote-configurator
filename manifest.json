@@ -2,7 +2,7 @@
   "domain": "esphome_remote_configurator",
   "name": "ESPHome Remote Configurator",
   "version": "1.0.0",
-  "documentation": "https://github.com/your-user/esphome-remote-configurator",
+  "documentation": "https://github.com/HesusAIM/esphome-remote-configurator",
   "requirements": [],
   "dependencies": ["frontend"],
   "codeowners": [],
