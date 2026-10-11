@@ -1174,16 +1174,28 @@ select { cursor: pointer; }
       function copyExport(which, btn) {
         const ids = { main: 'exportMain', common: 'exportCommon', glyphs: 'exportGlyphs' };
         const text = $(ids[which]).textContent;
-        navigator.clipboard.writeText(text).then(() => {
+
+        function confirm() {
           btn.textContent = 'Copied!'; btn.classList.add('copied');
           setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-        }).catch(() => {
+        }
+
+        function fallback() {
           const ta = document.createElement('textarea');
-          ta.value = text; document.body.appendChild(ta); ta.select();
-          document.execCommand('copy'); ta.remove();
-          btn.textContent = 'Copied!'; btn.classList.add('copied');
-          setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-        });
+          ta.value = text;
+          ta.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0;';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          try { document.execCommand('copy'); confirm(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(confirm).catch(fallback);
+        } else {
+          fallback();
+        }
       }
 
       $('btnCopyMain').addEventListener('click', e => copyExport('main', e.currentTarget));
