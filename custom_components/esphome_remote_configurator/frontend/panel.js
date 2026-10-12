@@ -174,6 +174,10 @@
   padding: 12px 14px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 8px; flex-shrink: 0;
 }
+.shortcut-section-header {
+  border-top: 2px solid var(--border2);
+  margin-top: 4px;
+}
 .panel-title { font-size: 12px; font-weight: 600; color: var(--fg2); text-transform: uppercase; letter-spacing: .07em; flex: 1; }
 .btn-icon {
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
@@ -392,6 +396,11 @@ select { cursor: pointer; }
             <button class="btn-icon" id="btnAddDevice" title="Add device">＋</button>
           </div>
           <div class="device-list" id="deviceList"></div>
+          <div class="panel-header shortcut-section-header" id="shortcutSectionHeader">
+            <span class="panel-title">Shortcuts (<span id="shortcutCount">0</span>)</span>
+            <button class="btn-icon" id="btnAddShortcut" title="Add shortcut">＋</button>
+          </div>
+          <div class="device-list" id="shortcutList"></div>
         </div>
 
         <div class="device-editor" id="deviceEditor">
@@ -473,8 +482,12 @@ select { cursor: pointer; }
 
             <div id="shortcutFields" style="display:none">
               <div class="field-group">
-                <label>Button ID <span style="color:var(--fg3)">(physical button: sw1, sw2, sw3…)</span></label>
-                <input type="text" id="fButtonId" placeholder="sw1" spellcheck="false">
+                <label>Button ID <span style="color:var(--fg3)">(physical button on remote)</span></label>
+                <select id="fButtonId">
+                  <option value="sw1">sw1</option>
+                  <option value="sw2">sw2</option>
+                  <option value="sw3">sw3</option>
+                </select>
               </div>
             </div>
 
@@ -759,28 +772,47 @@ select { cursor: pointer; }
       $('tabBtnExport').addEventListener('click', e => switchTab('export', e.currentTarget));
 
       /* ── Device list ────────────────────────────────────────────── */
+      function makeDeviceCard(dev, i) {
+        const card = document.createElement('div');
+        card.className = 'device-card' + (i === selectedIndex ? ' selected' : '');
+        card.draggable = true;
+        card.dataset.index = i;
+        const sub = dev.type === 'shortcut'
+          ? (dev.button_id ? `${dev.button_id} → ${dev.automation_id || 'none'}` : '')
+          : (dev.entity_id || '');
+        card.innerHTML = `
+          <span class="drag-handle" title="Drag to reorder">⠿</span>
+          <div class="device-card-info">
+            <div class="device-card-name">${esc(dev.display_name)}</div>
+            <div class="device-card-sub">${esc(sub)}</div>
+          </div>
+          <span class="device-card-type type-${dev.type}">${dev.type}</span>
+          <button class="device-del-btn" data-del="${i}" title="Delete">✕</button>`;
+        card.querySelector('.device-del-btn').addEventListener('click', e => { e.stopPropagation(); deleteDevice(i); });
+        card.addEventListener('click', () => selectDevice(i));
+        setupDrag(card, i);
+        return card;
+      }
+
       function renderDeviceList() {
         const list = $('deviceList');
-        $('deviceCount').textContent = state.devices.length;
+        const scList = $('shortcutList');
+
+        const devices   = state.devices.filter(d => d.type !== 'shortcut');
+        const shortcuts = state.devices.filter(d => d.type === 'shortcut');
+
+        $('deviceCount').textContent = devices.length;
         list.innerHTML = '';
         state.devices.forEach((dev, i) => {
-          const card = document.createElement('div');
-          card.className = 'device-card' + (i === selectedIndex ? ' selected' : '');
-          card.draggable = true;
-          card.dataset.index = i;
-          card.innerHTML = `
-            <span class="drag-handle" title="Drag to reorder">⠿</span>
-            <div class="device-card-info">
-              <div class="device-card-name">${esc(dev.display_name)}</div>
-              <div class="device-card-sub">${esc(dev.entity_id)}</div>
-            </div>
-            <span class="device-card-type type-${dev.type}">${dev.type}</span>
-            <button class="device-del-btn" data-del="${i}" title="Delete">✕</button>`;
-          card.querySelector('.device-del-btn').addEventListener('click', e => { e.stopPropagation(); deleteDevice(i); });
-          card.addEventListener('click', () => selectDevice(i));
-          setupDrag(card, i);
-          list.appendChild(card);
+          if (dev.type !== 'shortcut') list.appendChild(makeDeviceCard(dev, i));
         });
+
+        $('shortcutCount').textContent = shortcuts.length;
+        scList.innerHTML = '';
+        state.devices.forEach((dev, i) => {
+          if (dev.type === 'shortcut') scList.appendChild(makeDeviceCard(dev, i));
+        });
+
         updateBootPageSelect();
       }
 
@@ -818,8 +850,8 @@ select { cursor: pointer; }
         renderDeviceList();
       }
 
-      function addDevice() {
-        editingDevice = { key: '', type: 'light', entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: '', automation_id: '' };
+      function addDevice(type = 'light') {
+        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '' };
         selectedIndex = null;
         populateEditor(editingDevice, true);
         renderDeviceList();
@@ -838,7 +870,8 @@ select { cursor: pointer; }
         $('editorForm').style.display = 'none';
       }
 
-      $('btnAddDevice').addEventListener('click', addDevice);
+      $('btnAddDevice').addEventListener('click', () => addDevice('light'));
+      $('btnAddShortcut').addEventListener('click', () => addDevice('shortcut'));
 
       /* ── Editor ─────────────────────────────────────────────────── */
       function populateEditor(dev, isNew = false) {
@@ -848,7 +881,7 @@ select { cursor: pointer; }
         $('fKey').value = dev.key;
         $('fEntityId').value = dev.type === 'shortcut' ? (dev.automation_id || '') : (dev.entity_id || '');
         $('fDisplayName').value = dev.display_name;
-        $('fButtonId').value = dev.button_id || '';
+        $('fButtonId').value = dev.button_id || 'sw1';
         $('fBrightnessStep').value = dev.brightness_step || 5;
         $('fTempStep').value = dev.temp_step || 1;
         setEditorTypeUI(dev.type);
