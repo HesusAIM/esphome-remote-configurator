@@ -637,10 +637,11 @@ select { cursor: pointer; }
       <div class="ha-drawer-body">
         <div class="ha-status ok" id="haStatus"></div>
         <div class="entity-type-filter">
-          <button class="filter-chip active" data-type="all"     id="filterAll">All</button>
-          <button class="filter-chip" data-type="light"          id="filterLight">Lights</button>
-          <button class="filter-chip" data-type="switch"         id="filterSwitch">Switches</button>
-          <button class="filter-chip" data-type="climate"        id="filterClimate">Climate</button>
+          <button class="filter-chip active" data-type="all"        id="filterAll">All</button>
+          <button class="filter-chip" data-type="light"           id="filterLight">Lights</button>
+          <button class="filter-chip" data-type="switch"          id="filterSwitch">Switches</button>
+          <button class="filter-chip" data-type="climate"         id="filterClimate">Climate</button>
+          <button class="filter-chip" data-type="automation"      id="filterAutomation">Automations</button>
         </div>
         <input type="text" id="haEntitySearch" class="entity-search" placeholder="Search entities…">
         <div class="ha-entity-scroll">
@@ -738,7 +739,7 @@ select { cursor: pointer; }
       function getHaEntities() {
         if (!self._hass) return [];
         return Object.entries(self._hass.states)
-          .filter(([id]) => /^(light|switch|climate)\./.test(id))
+          .filter(([id]) => /^(light|switch|climate|automation)\./.test(id))
           .map(([id, s]) => ({ entity_id: id, attributes: s.attributes || {} }))
           .sort((a, b) => a.entity_id.localeCompare(b.entity_id));
       }
@@ -1032,6 +1033,14 @@ select { cursor: pointer; }
 
       /* ── Entity Browser Drawer ──────────────────────────────────── */
       function openHaDrawer() {
+        // Auto-select the matching filter for the current device type
+        if (editingDevice) {
+          const typeToFilter = { light: 'light', switch: 'switch', climate: 'climate', shortcut: 'automation' };
+          const f = typeToFilter[editingDevice.type] || 'all';
+          const filterIdMap = { all: 'filterAll', light: 'filterLight', switch: 'filterSwitch', climate: 'filterClimate', automation: 'filterAutomation' };
+          const btn = $(filterIdMap[f] || 'filterAll');
+          if (btn) filterEntities(f, btn);
+        }
         renderHaEntities();
         $('haDrawerOverlay').classList.add('open');
       }
@@ -1079,6 +1088,7 @@ select { cursor: pointer; }
         if (entityId.startsWith('light.')) setEditorTypeUI('light');
         else if (entityId.startsWith('switch.')) setEditorTypeUI('switch');
         else if (entityId.startsWith('climate.')) setEditorTypeUI('climate');
+        else if (entityId.startsWith('automation.')) { setEditorTypeUI('shortcut'); $('fEntityId').value = entityId; }
         closeHaDrawer();
       }
 
@@ -1087,10 +1097,11 @@ select { cursor: pointer; }
       $('btnCloseDrawer').addEventListener('click', closeHaDrawer);
       $('haDrawerOverlay').addEventListener('click', e => { if (e.target === $('haDrawerOverlay')) closeHaDrawer(); });
       $('haEntitySearch').addEventListener('input', renderHaEntities);
-      $('filterAll').addEventListener('click',     e => filterEntities('all', e.currentTarget));
-      $('filterLight').addEventListener('click',   e => filterEntities('light', e.currentTarget));
-      $('filterSwitch').addEventListener('click',  e => filterEntities('switch', e.currentTarget));
-      $('filterClimate').addEventListener('click', e => filterEntities('climate', e.currentTarget));
+      $('filterAll').addEventListener('click',        e => filterEntities('all', e.currentTarget));
+      $('filterLight').addEventListener('click',      e => filterEntities('light', e.currentTarget));
+      $('filterSwitch').addEventListener('click',     e => filterEntities('switch', e.currentTarget));
+      $('filterClimate').addEventListener('click',    e => filterEntities('climate', e.currentTarget));
+      $('filterAutomation').addEventListener('click', e => filterEntities('automation', e.currentTarget));
 
       /* ── Settings ───────────────────────────────────────────────── */
       function syncSettingsUI() {
