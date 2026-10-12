@@ -177,6 +177,10 @@
 .shortcut-section-header {
   border-top: 2px solid var(--border2);
   margin-top: 4px;
+  position: sticky;
+  top: 0;
+  background: var(--bg2);
+  z-index: 1;
 }
 .panel-title { font-size: 12px; font-weight: 600; color: var(--fg2); text-transform: uppercase; letter-spacing: .07em; flex: 1; }
 .btn-icon {
@@ -186,7 +190,8 @@
   transition: all .15s; font-family: var(--sans);
 }
 .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
-.device-list { flex: 1; overflow-y: auto; padding: 6px; }
+.device-list-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.device-list { padding: 6px; }
 .device-card {
   display: flex; align-items: center; gap: 8px;
   padding: 10px; border-radius: 6px; cursor: pointer;
@@ -333,7 +338,7 @@ select { cursor: pointer; }
 .btn-close { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; color: var(--fg2); font-size: 18px; font-family: var(--sans); transition: all .15s; }
 .btn-close:hover { border-color: var(--danger); color: var(--danger); }
 .ha-drawer-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow: hidden; }
-.entity-type-filter { display: flex; gap: 6px; flex-shrink: 0; }
+.entity-type-filter { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
 .filter-chip { padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; font-size: 11px; font-weight: 500; color: var(--fg3); cursor: pointer; transition: all .15s; font-family: var(--sans); }
 .filter-chip.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
 .entity-search { flex-shrink: 0; }
@@ -395,12 +400,14 @@ select { cursor: pointer; }
             <span class="panel-title">Devices (<span id="deviceCount">0</span>)</span>
             <button class="btn-icon" id="btnAddDevice" title="Add device">＋</button>
           </div>
-          <div class="device-list" id="deviceList"></div>
-          <div class="panel-header shortcut-section-header" id="shortcutSectionHeader">
-            <span class="panel-title">Shortcuts (<span id="shortcutCount">0</span>)</span>
-            <button class="btn-icon" id="btnAddShortcut" title="Add shortcut">＋</button>
+          <div class="device-list-scroll">
+            <div class="device-list" id="deviceList"></div>
+            <div class="panel-header shortcut-section-header" id="shortcutSectionHeader">
+              <span class="panel-title">Shortcuts (<span id="shortcutCount">0</span>)</span>
+              <button class="btn-icon" id="btnAddShortcut" title="Add shortcut">＋</button>
+            </div>
+            <div class="device-list" id="shortcutList"></div>
           </div>
-          <div class="device-list" id="shortcutList"></div>
         </div>
 
         <div class="device-editor" id="deviceEditor">
