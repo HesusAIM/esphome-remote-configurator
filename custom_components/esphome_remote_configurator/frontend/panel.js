@@ -272,6 +272,10 @@ select { cursor: pointer; }
 
 /* Icon picker */
 .icon-pair { display: flex; gap: 12px; }
+.icon-browse-hint { margin-top: 8px; font-size: 11px; color: var(--fg3); line-height: 1.6; }
+.icon-browse-hint a { color: var(--accent); text-decoration: none; }
+.icon-browse-hint a:hover { text-decoration: underline; }
+.icon-browse-hint code { font-family: var(--mono); font-size: 10px; background: var(--bg3); padding: 1px 4px; border-radius: 3px; color: var(--fg2); }
 .icon-pair .field-group { flex: 1; }
 .icon-picker-wrap { position: relative; }
 .icon-preview { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color .15s; user-select: none; }
@@ -520,6 +524,11 @@ select { cursor: pointer; }
                     </div>
                   </div>
                 </div>
+              </div>
+              <div class="icon-browse-hint">
+                Looking for a specific icon? Browse the full MDI library at
+                <a href="https://pictogrammers.com/library/mdi/" target="_blank" rel="noopener">pictogrammers.com/library/mdi</a>
+                — find your icon, copy its 5-digit hex code (e.g. <code>F06E8</code>), then type it into the picker above.
               </div>
             </div>
 
