@@ -544,7 +544,18 @@ select { cursor: pointer; }
                   <option value="min">minutes</option>
                 </select>
               </div>
-              <span class="field-hint">How long before the screen turns off after last button press</span>
+              <span class="field-hint">How long before the display turns off after the last button press</span>
+            </div>
+            <div class="field-group">
+              <label>Sleep Timeout</label>
+              <div class="timeout-row">
+                <input type="number" id="sSleepTimeoutVal" value="5" min="1" max="600">
+                <select class="timeout-unit" id="sSleepTimeoutUnit">
+                  <option value="s">seconds</option>
+                  <option value="min">minutes</option>
+                </select>
+              </div>
+              <span class="field-hint">How long after screen off before ESP32 enters deep sleep (only applies when Deep Sleep is selected below)</span>
             </div>
             <div class="field-group">
               <label>After Screen Off</label>
@@ -724,7 +735,7 @@ select { cursor: pointer; }
       /* ── State ─────────────────────────────────────────────────── */
       let state = {
         devices: [],
-        settings: { screenTimeoutVal: 30, screenTimeoutUnit: 's', sleepMode: 'deep', wifiPowerSave: 'LIGHT', bootPage: '' }
+        settings: { screenTimeoutVal: 30, screenTimeoutUnit: 's', sleepTimeoutVal: 5, sleepTimeoutUnit: 's', sleepMode: 'deep', wifiPowerSave: 'LIGHT', bootPage: '' }
       };
       let selectedIndex = null;
       let editingDevice = null;
@@ -1148,6 +1159,8 @@ select { cursor: pointer; }
         const s = state.settings;
         $('sScreenTimeoutVal').value = s.screenTimeoutVal;
         $('sScreenTimeoutUnit').value = s.screenTimeoutUnit;
+        $('sSleepTimeoutVal').value = s.sleepTimeoutVal ?? 5;
+        $('sSleepTimeoutUnit').value = s.sleepTimeoutUnit ?? 's';
         $$('[name=sleep_mode]').forEach(r => { r.checked = r.value === s.sleepMode; });
         $$('[name=wifi_ps]').forEach(r => { r.checked = r.value === s.wifiPowerSave; });
         $$('.radio-option').forEach(el => {
@@ -1160,6 +1173,8 @@ select { cursor: pointer; }
       function saveSettings() {
         state.settings.screenTimeoutVal = parseInt($('sScreenTimeoutVal').value) || 30;
         state.settings.screenTimeoutUnit = $('sScreenTimeoutUnit').value;
+        state.settings.sleepTimeoutVal = parseInt($('sSleepTimeoutVal').value) || 5;
+        state.settings.sleepTimeoutUnit = $('sSleepTimeoutUnit').value;
         state.settings.bootPage = $('sBootPage').value;
         saveState();
       }
@@ -1174,7 +1189,7 @@ select { cursor: pointer; }
           state.settings.wifiPowerSave = t.value;
           $$('[name=wifi_ps]').forEach(r => r.closest('.radio-option').classList.toggle('selected', r.checked));
           saveSettings();
-        } else if (['sScreenTimeoutVal','sScreenTimeoutUnit','sBootPage'].includes(t.id)) {
+        } else if (['sScreenTimeoutVal','sScreenTimeoutUnit','sSleepTimeoutVal','sSleepTimeoutUnit','sBootPage'].includes(t.id)) {
           saveSettings();
         }
       });
@@ -1183,6 +1198,11 @@ select { cursor: pointer; }
       function getTimeout() {
         const s = state.settings;
         return s.screenTimeoutVal + s.screenTimeoutUnit;
+      }
+
+      function getSleepTimeout() {
+        const s = state.settings;
+        return (s.sleepTimeoutVal ?? 5) + (s.sleepTimeoutUnit ?? 's');
       }
 
       function getBootPage() {
@@ -1244,7 +1264,8 @@ select { cursor: pointer; }
 
       function genCommonSubst() {
         const s = state.settings;
-        return `substitutions:\n  display_timeout: "${getTimeout()}"\n  # "screen" = stay connected, display off\n  # "deep"   = ESP32 deep sleep (OK button wakes)\n  sleep_mode: "${s.sleepMode}"\n  # WiFi power save: NONE | LIGHT | HIGH\n  power_save_mode: "${s.wifiPowerSave}"`;
+        const pages = state.devices.filter(d => d.type !== 'shortcut');
+        return `substitutions:\n  display_timeout: "${getTimeout()}"\n  sleep_timeout: "${getSleepTimeout()}"\n  # "screen" = stay connected, display off\n  # "deep"   = ESP32 deep sleep (OK button wakes)\n  sleep_mode: "${s.sleepMode}"\n  # WiFi power save: NONE | LIGHT | HIGH\n  power_save_mode: "${s.wifiPowerSave}"\n  total_pages: "${pages.length}"`;
       }
 
       function genGlyphs() {
