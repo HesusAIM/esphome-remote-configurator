@@ -1265,7 +1265,7 @@ select { cursor: pointer; }
       function genCommonSubst() {
         const s = state.settings;
         const pages = state.devices.filter(d => d.type !== 'shortcut');
-        return `substitutions:\n  display_timeout: "${getTimeout()}"\n  sleep_timeout: "${getSleepTimeout()}"\n  # "screen" = stay connected, display off\n  # "deep"   = ESP32 deep sleep (OK button wakes)\n  sleep_mode: "${s.sleepMode}"\n  # WiFi power save: NONE | LIGHT | HIGH\n  power_save_mode: "${s.wifiPowerSave}"\n  total_pages: "${pages.length}"`;
+        return `substitutions:\n  screen_timeout: "${getTimeout()}"\n  sleep_timeout: "${getSleepTimeout()}"\n  # "screen" = stay connected, display off\n  # "deep"   = ESP32 deep sleep (OK button wakes)\n  sleep_mode: "${s.sleepMode}"\n  # WiFi power save: NONE | LIGHT | HIGH\n  power_save_mode: "${s.wifiPowerSave}"\n  total_pages: "${pages.length}"`;
       }
 
       function genGlyphs() {
