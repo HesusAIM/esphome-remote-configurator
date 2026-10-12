@@ -1223,7 +1223,7 @@ select { cursor: pointer; }
 
       function iconComment(code) {
         const [name] = findIcon(code);
-        return `  - "\\U000${code}"  # mdi-${name}`;
+        return `      - "\\U000${code}"  # mdi-${name}`;
       }
 
       function genMainYaml() {
