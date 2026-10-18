@@ -526,7 +526,7 @@ select { cursor: pointer; }
                 <label>Predefined Colors <span style="color:var(--fg3)">(shown in hold-OK submenu on remote)</span></label>
                 <div class="color-list" id="rgbColorList"></div>
                 <div class="color-list-footer">
-                  <span class="color-count-hint" id="colorCountHint">0 / 9 colors</span>
+                  <span class="color-count-hint" id="colorCountHint">0 / 10 colors</span>
                   <button class="btn-add-color" id="btnAddColor">＋ Add Color</button>
                 </div>
               </div>
@@ -953,15 +953,16 @@ select { cursor: pointer; }
       // WLED default color presets (exact RGB as specified — white presets are added
       // automatically by the template and are NOT in this list)
       const DEFAULT_WLED_COLORS = [
-        { name: 'Blue',      hex: '#0000ff' },
-        { name: 'Green',     hex: '#00ff00' },
-        { name: 'Magenta',   hex: '#ff0050' },
-        { name: 'Orange',    hex: '#ff5000' },
-        { name: 'Pink',      hex: '#ff0064' },
-        { name: 'Purple',    hex: '#ff00c8' },
         { name: 'Red',       hex: '#ff0000' },
-        { name: 'Turquoise', hex: '#00ffa0' },
+        { name: 'Orange',    hex: '#ff5000' },
         { name: 'Yellow',    hex: '#ff8c00' },
+        { name: 'Green',     hex: '#00ff00' },
+        { name: 'Turquoise', hex: '#00ffa0' },
+        { name: 'Cyan',      hex: '#00ffff' },
+        { name: 'Blue',      hex: '#0000ff' },
+        { name: 'Purple',    hex: '#ff00c8' },
+        { name: 'Pink',      hex: '#ff0064' },
+        { name: 'Magenta',   hex: '#ff0050' },
       ];
 
       function addDevice(type = 'light') {
@@ -1085,7 +1086,7 @@ select { cursor: pointer; }
 
           container.appendChild(row);
         });
-        $('colorCountHint').textContent = `${(colors || []).length} / 9 colors`;
+        $('colorCountHint').textContent = `${(colors || []).length} / 10 colors`;
 
         // Auto-open the preset grid on the last row (for newly added colors)
         if (autoOpenLast && container.lastChild) {
@@ -1097,7 +1098,7 @@ select { cursor: pointer; }
       $('btnAddColor').addEventListener('click', () => {
         if (!editingDevice) return;
         if (!editingDevice.colors) editingDevice.colors = [];
-        if (editingDevice.colors.length >= 9) { alert('Maximum 9 colors'); return; }
+        if (editingDevice.colors.length >= 10) { alert('Maximum 10 colors'); return; }
         // Seed with first preset so the swatch isn't blank
         const seed = DEFAULT_WLED_COLORS[0];
         editingDevice.colors.push({ name: seed.name, hex: seed.hex });
@@ -1491,9 +1492,9 @@ select { cursor: pointer; }
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
               const colors = (dev.colors || []).filter(c => c.name.trim() || c.hex);
               out += `      color_count: "${colors.length}"\n`;
-              // Always emit all 9 slots — template references all of them to avoid
-              // "undefined substitution" errors when color_count < 9
-              for (let idx = 0; idx < 9; idx++) {
+              // Always emit all 10 slots — template references all of them to avoid
+              // "undefined substitution" errors when color_count < 10
+              for (let idx = 0; idx < 10; idx++) {
                 const c = colors[idx] || { name: '', hex: '#000000' };
                 const [r, g, b] = hexToRgb(c.hex);
                 out += `      color${idx + 1}_name: "${c.name.trim() || (idx < colors.length ? `Color ${idx + 1}` : 'unused')}"\n`;
