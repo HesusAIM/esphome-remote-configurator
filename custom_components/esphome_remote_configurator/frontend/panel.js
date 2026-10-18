@@ -536,7 +536,7 @@ select { cursor: pointer; }
               <div class="field-row">
                 <div class="field-group">
                   <label>Temp Step <span style="color:var(--fg3)">(K per press)</span></label>
-                  <input type="number" id="fWledTempStep" value="200" min="50" max="1000">
+                  <input type="number" id="fWledTempStep" value="100" min="50" max="1000">
                 </div>
               </div>
               <div class="field-row">
@@ -967,7 +967,7 @@ select { cursor: pointer; }
       function addDevice(type = 'light') {
         const colors = type === 'wled' ? DEFAULT_WLED_COLORS.map(c => ({ ...c }))
                      : (type === 'rgb') ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
-        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, wled_temp_step: 200, temp_min: 2000, temp_max: 6500 };
+        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, wled_temp_step: 100, temp_min: 2000, temp_max: 6500 };
         selectedIndex = null;
         populateEditor(editingDevice, true);
         renderDeviceList();
@@ -1011,7 +1011,7 @@ select { cursor: pointer; }
         setIconUI('on', dev.icon_on || 'F06E8');
         setIconUI('off', dev.icon_off || 'F0336');
         if (dev.type === 'rgb' || dev.type === 'wled') renderColorList(dev.colors || []);
-        $('fWledTempStep').value = dev.wled_temp_step || 200;
+        $('fWledTempStep').value = dev.wled_temp_step || 100;
         $('fTempMin').value      = dev.temp_min      || 2000;
         $('fTempMax').value      = dev.temp_max      || 6500;
         // Reset key manual flag when populating
@@ -1212,7 +1212,7 @@ select { cursor: pointer; }
             editingDevice.colors = (editingDevice.colors || []).filter(c => c.name.trim() || c.hex);
           }
           if (editingDevice.type === 'wled') {
-            editingDevice.wled_temp_step = parseInt($('fWledTempStep').value) || 200;
+            editingDevice.wled_temp_step = parseInt($('fWledTempStep').value) || 100;
             editingDevice.temp_min      = parseInt($('fTempMin').value)      || 2000;
             editingDevice.temp_max      = parseInt($('fTempMax').value)      || 6500;
           }
@@ -1491,9 +1491,9 @@ select { cursor: pointer; }
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
               const colors = (dev.colors || []).filter(c => c.name.trim() || c.hex);
               out += `      color_count: "${colors.length}"\n`;
-              // Always emit all 8 slots — template references all of them to avoid
-              // "undefined substitution" errors when color_count < 8
-              for (let idx = 0; idx < 8; idx++) {
+              // Always emit all 9 slots — template references all of them to avoid
+              // "undefined substitution" errors when color_count < 9
+              for (let idx = 0; idx < 9; idx++) {
                 const c = colors[idx] || { name: '', hex: '#000000' };
                 const [r, g, b] = hexToRgb(c.hex);
                 out += `      color${idx + 1}_name: "${c.name.trim() || (idx < colors.length ? `Color ${idx + 1}` : 'unused')}"\n`;
@@ -1504,7 +1504,7 @@ select { cursor: pointer; }
               if (dev.type === 'wled') {
                 out += `      temp_min: "${dev.temp_min || 2000}"\n`;
                 out += `      temp_max: "${dev.temp_max || 6500}"\n`;
-                out += `      temp_step: "${dev.wled_temp_step || 200}"\n`;
+                out += `      temp_step: "${dev.wled_temp_step || 100}"\n`;
                 // White presets — fixed; not user-editable in the configurator
                 out += `      wwhite1_name: "Cool White"\n`;
                 out += `      wwhite1_temp: "6500"\n`;
