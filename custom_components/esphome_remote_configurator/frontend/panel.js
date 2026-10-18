@@ -209,6 +209,7 @@
 .device-card-sub { font-size: 11px; color: var(--fg3); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .device-card-type { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
 .type-light    { background: #d2992210; color: var(--warn); }
+.type-rgb      { background: #e05cad12; color: #e05cad; }
 .type-switch   { background: #00d4aa10; color: var(--accent); }
 .type-climate  { background: #388bfd10; color: #388bfd; }
 .type-shortcut { background: #9e6aff10; color: #9e6aff; }
@@ -263,12 +264,28 @@ select { cursor: pointer; }
 
 /* Type tabs */
 .type-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.type-tab { flex: 1; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--fg2); font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; transition: all .15s; font-family: var(--sans); }
+.type-tab { padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--fg2); font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; transition: all .15s; font-family: var(--sans); }
 .type-tab:hover { border-color: var(--border2); color: var(--fg); }
 .type-tab.active.light    { border-color: var(--warn);   color: var(--warn);   background: #d2992210; }
+.type-tab.active.rgb      { border-color: #e05cad; color: #e05cad; background: #e05cad12; }
 .type-tab.active.switch   { border-color: var(--accent);  color: var(--accent);  background: var(--accent-bg); }
 .type-tab.active.climate  { border-color: #388bfd; color: #388bfd; background: #388bfd10; }
 .type-tab.active.shortcut { border-color: #9e6aff; color: #9e6aff; background: #9e6aff10; }
+.type-tab.shortcut-tab    { grid-column: 1 / -1; }
+
+/* RGB color list */
+.color-list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.color-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; }
+.color-swatch { width: 32px; height: 32px; border: none; border-radius: 5px; cursor: pointer; padding: 0; background: none; flex-shrink: 0; }
+.color-name { flex: 1; font-family: var(--sans); font-size: 12px; background: transparent; border: none; color: var(--fg); outline: none; min-width: 0; }
+.color-name::placeholder { color: var(--fg3); }
+.color-name:focus { color: var(--fg); }
+.color-del-btn { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer; color: var(--fg3); font-size: 11px; font-family: var(--sans); flex-shrink: 0; transition: all .1s; }
+.color-del-btn:hover { border-color: var(--danger); color: var(--danger); background: #f8514910; }
+.color-list-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.color-count-hint { font-size: 11px; color: var(--fg3); }
+.btn-add-color { padding: 5px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; color: var(--fg2); font-size: 12px; font-family: var(--sans); cursor: pointer; transition: all .15s; }
+.btn-add-color:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Icon picker */
 .icon-pair { display: flex; gap: 12px; }
@@ -429,9 +446,10 @@ select { cursor: pointer; }
               <label>Device Type</label>
               <div class="type-tabs">
                 <button class="type-tab active light"   id="typeTabLight">💡 Light</button>
+                <button class="type-tab rgb"            id="typeTabRgb">🌈 RGB</button>
                 <button class="type-tab switch"         id="typeTabSwitch">🔌 Switch</button>
                 <button class="type-tab climate"        id="typeTabClimate">🌡️ Climate</button>
-                <button class="type-tab shortcut"       id="typeTabShortcut">⚡ Shortcut</button>
+                <button class="type-tab shortcut shortcut-tab" id="typeTabShortcut">⚡ Shortcut</button>
               </div>
             </div>
 
@@ -487,6 +505,17 @@ select { cursor: pointer; }
                     <div class="mode-chip" data-mode="dry">dry</div>
                     <div class="mode-chip" data-mode="auto">auto</div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="rgbFields" style="display:none">
+              <div class="field-group">
+                <label>Predefined Colors <span style="color:var(--fg3)">(shown in hold-OK submenu on remote)</span></label>
+                <div class="color-list" id="rgbColorList"></div>
+                <div class="color-list-footer">
+                  <span class="color-count-hint" id="colorCountHint">0 / 8 colors</span>
+                  <button class="btn-add-color" id="btnAddColor">＋ Add Color</button>
                 </div>
               </div>
             </div>
@@ -806,7 +835,9 @@ select { cursor: pointer; }
         card.dataset.index = i;
         const sub = dev.type === 'shortcut'
           ? (dev.button_id ? `${dev.button_id} → ${dev.automation_id || 'none'}` : '')
-          : (dev.entity_id || '');
+          : dev.type === 'rgb'
+            ? `${dev.entity_id || ''} · ${(dev.colors || []).length} color${(dev.colors || []).length !== 1 ? 's' : ''}`
+            : (dev.entity_id || '');
         card.innerHTML = `
           <span class="drag-handle" title="Drag to reorder">⠿</span>
           <div class="device-card-info">
@@ -877,8 +908,18 @@ select { cursor: pointer; }
         renderDeviceList();
       }
 
+      const DEFAULT_RGB_COLORS = [
+        { name: 'Warm White', hex: '#ffd6a0' },
+        { name: 'Cool White', hex: '#cce8ff' },
+        { name: 'Red',        hex: '#ff0000' },
+        { name: 'Green',      hex: '#00cc44' },
+        { name: 'Blue',       hex: '#0066ff' },
+        { name: 'Purple',     hex: '#8800ff' },
+      ];
+
       function addDevice(type = 'light') {
-        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '' };
+        const colors = type === 'rgb' ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
+        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors };
         selectedIndex = null;
         populateEditor(editingDevice, true);
         renderDeviceList();
@@ -921,9 +962,50 @@ select { cursor: pointer; }
         });
         setIconUI('on', dev.icon_on || 'F06E8');
         setIconUI('off', dev.icon_off || 'F0336');
+        if (dev.type === 'rgb') renderColorList(dev.colors || []);
         // Reset key manual flag when populating
         $('fKey').dataset.manual = dev.key ? '1' : '';
       }
+
+      /* ── RGB color list ─────────────────────────────────────────── */
+      function hexToRgb(hex) {
+        const n = parseInt((hex || '#ffffff').slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      }
+
+      function renderColorList(colors) {
+        const container = $('rgbColorList');
+        container.innerHTML = '';
+        (colors || []).forEach((color, i) => {
+          const row = document.createElement('div');
+          row.className = 'color-row';
+          row.innerHTML = `
+            <input type="color" class="color-swatch" value="${esc(color.hex || '#ffffff')}" title="Pick color">
+            <input type="text" class="color-name" placeholder="e.g. Warm White" value="${esc(color.name || '')}">
+            <button class="color-del-btn" title="Remove">✕</button>`;
+          row.querySelector('.color-swatch').addEventListener('input', e => {
+            if (editingDevice && editingDevice.colors[i]) editingDevice.colors[i].hex = e.target.value;
+          });
+          row.querySelector('.color-name').addEventListener('input', e => {
+            if (editingDevice && editingDevice.colors[i]) editingDevice.colors[i].name = e.target.value;
+          });
+          row.querySelector('.color-del-btn').addEventListener('click', () => {
+            if (!editingDevice) return;
+            editingDevice.colors.splice(i, 1);
+            renderColorList(editingDevice.colors);
+          });
+          container.appendChild(row);
+        });
+        $('colorCountHint').textContent = `${(colors || []).length} / 8 colors`;
+      }
+
+      $('btnAddColor').addEventListener('click', () => {
+        if (!editingDevice) return;
+        if (!editingDevice.colors) editingDevice.colors = [];
+        if (editingDevice.colors.length >= 8) { alert('Maximum 8 colors'); return; }
+        editingDevice.colors.push({ name: '', hex: '#ffffff' });
+        renderColorList(editingDevice.colors);
+      });
 
       function setEditorTypeUI(type) {
         $$('.type-tab').forEach(b => {
@@ -931,16 +1013,25 @@ select { cursor: pointer; }
           if (b.id === 'typeTab' + cap(type)) b.classList.add('active');
         });
         const isShortcut = type === 'shortcut';
-        $('lightFields').style.display    = type === 'light' ? '' : 'none';
+        const isRgb      = type === 'rgb';
+        $('lightFields').style.display    = (type === 'light' || isRgb) ? '' : 'none';
+        $('rgbFields').style.display      = isRgb ? '' : 'none';
         $('climateFields').style.display  = type === 'climate' ? '' : 'none';
         $('shortcutFields').style.display = isShortcut ? '' : 'none';
         $('iconFields').style.display     = (type === 'climate' || isShortcut) ? 'none' : '';
         $('entityRowLabel').textContent   = isShortcut ? 'Automation ID' : 'Entity ID';
-        $('fEntityId').placeholder        = isShortcut ? 'automation.wakey_on (or "none")' : 'light.my_light';
-        if (editingDevice) editingDevice.type = type;
+        $('fEntityId').placeholder        = isShortcut ? 'automation.wakey_on (or "none")' : (isRgb ? 'light.my_rgb_light' : 'light.my_light');
+        if (editingDevice) {
+          editingDevice.type = type;
+          if (isRgb && !editingDevice.colors) {
+            editingDevice.colors = DEFAULT_RGB_COLORS.map(c => ({ ...c }));
+            renderColorList(editingDevice.colors);
+          }
+        }
       }
 
       $('typeTabLight').addEventListener('click', () => setEditorTypeUI('light'));
+      $('typeTabRgb').addEventListener('click', () => setEditorTypeUI('rgb'));
       $('typeTabSwitch').addEventListener('click', () => setEditorTypeUI('switch'));
       $('typeTabClimate').addEventListener('click', () => setEditorTypeUI('climate'));
       $('typeTabShortcut').addEventListener('click', () => setEditorTypeUI('shortcut'));
@@ -990,6 +1081,10 @@ select { cursor: pointer; }
           editingDevice.dimmable = dimmableState;
           editingDevice.hvac_modes = [...$$('#climateModes .mode-chip.active')].map(c => c.dataset.mode);
           if (editingDevice.hvac_modes.length === 0) editingDevice.hvac_modes = ['off'];
+          if (editingDevice.type === 'rgb') {
+            // colors are tracked live via input listeners; just filter empty names
+            editingDevice.colors = (editingDevice.colors || []).filter(c => c.name.trim() || c.hex);
+          }
         }
 
         if (!editingDevice.key) { alert('Key is required'); return; }
@@ -1248,13 +1343,29 @@ select { cursor: pointer; }
               out += `      automation_id: "${dev.automation_id || 'none'}"\n`;
               return;
             }
-            const tpl = dev.type === 'climate' ? '_template_climate.yaml' : dev.type === 'switch' ? '_template_switch.yaml' : '_template_light.yaml';
+            const tpl = dev.type === 'climate' ? '_template_climate.yaml'
+                      : dev.type === 'switch'  ? '_template_switch.yaml'
+                      : dev.type === 'rgb'     ? '_template_rgb.yaml'
+                      :                          '_template_light.yaml';
             out += `\n  ${dev.key}: !include\n    file: espremote/devices/${tpl}\n    vars:\n`;
             out += `      key: "${dev.key}"\n      entity_id: "${dev.entity_id}"\n      display_name: "${dev.display_name}"\n`;
             if (dev.type === 'light') {
               out += `      brightness_step: "${dev.brightness_step || 5}"\n      dimmable: "${dev.dimmable ? 'true' : 'false'}"\n`;
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
+            } else if (dev.type === 'rgb') {
+              out += `      brightness_step: "${dev.brightness_step || 5}"\n      dimmable: "${dev.dimmable ? 'true' : 'false'}"\n`;
+              out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
+              out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
+              const colors = (dev.colors || []).filter(c => c.name.trim() || c.hex);
+              out += `      color_count: "${colors.length}"\n`;
+              colors.forEach((c, idx) => {
+                const [r, g, b] = hexToRgb(c.hex);
+                out += `      color${idx + 1}_name: "${c.name.trim() || `Color ${idx + 1}`}"\n`;
+                out += `      color${idx + 1}_r: "${r}"\n`;
+                out += `      color${idx + 1}_g: "${g}"\n`;
+                out += `      color${idx + 1}_b: "${b}"\n`;
+              });
             } else if (dev.type === 'switch') {
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
