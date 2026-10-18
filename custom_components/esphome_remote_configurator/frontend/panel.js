@@ -972,7 +972,7 @@ select { cursor: pointer; }
       function addDevice(type = 'light') {
         const colors = type === 'wled' ? DEFAULT_WLED_COLORS.map(c => ({ ...c }))
                      : (type === 'rgb') ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
-        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, white_step: 13, wled_temp_step: 20, temp_min: 153, temp_max: 500 };
+        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, white_step: 13, wled_temp_step: 200, temp_min: 2000, temp_max: 6500 };
         selectedIndex = null;
         populateEditor(editingDevice, true);
         renderDeviceList();
@@ -1017,9 +1017,9 @@ select { cursor: pointer; }
         setIconUI('off', dev.icon_off || 'F0336');
         if (dev.type === 'rgb' || dev.type === 'wled') renderColorList(dev.colors || []);
         $('fWhiteStep').value    = dev.white_step    || 13;
-        $('fWledTempStep').value = dev.wled_temp_step || 20;
-        $('fTempMin').value      = dev.temp_min      || 153;
-        $('fTempMax').value      = dev.temp_max      || 500;
+        $('fWledTempStep').value = dev.wled_temp_step || 200;
+        $('fTempMin').value      = dev.temp_min      || 2000;
+        $('fTempMax').value      = dev.temp_max      || 6500;
         // Reset key manual flag when populating
         $('fKey').dataset.manual = dev.key ? '1' : '';
       }
@@ -1219,9 +1219,9 @@ select { cursor: pointer; }
           }
           if (editingDevice.type === 'wled') {
             editingDevice.white_step    = parseInt($('fWhiteStep').value)    || 13;
-            editingDevice.wled_temp_step = parseInt($('fWledTempStep').value) || 20;
-            editingDevice.temp_min      = parseInt($('fTempMin').value)      || 153;
-            editingDevice.temp_max      = parseInt($('fTempMax').value)      || 500;
+            editingDevice.wled_temp_step = parseInt($('fWledTempStep').value) || 200;
+            editingDevice.temp_min      = parseInt($('fTempMin').value)      || 2000;
+            editingDevice.temp_max      = parseInt($('fTempMax').value)      || 6500;
           }
         }
 
@@ -1510,16 +1510,16 @@ select { cursor: pointer; }
               }
               if (dev.type === 'wled') {
                 out += `      white_step: "${dev.white_step || 13}"\n`;
-                out += `      temp_min: "${dev.temp_min || 153}"\n`;
-                out += `      temp_max: "${dev.temp_max || 500}"\n`;
-                out += `      temp_step: "${dev.wled_temp_step || 20}"\n`;
+                out += `      temp_min: "${dev.temp_min || 2000}"\n`;
+                out += `      temp_max: "${dev.temp_max || 6500}"\n`;
+                out += `      temp_step: "${dev.wled_temp_step || 200}"\n`;
                 // White presets — fixed; not user-editable in the configurator
                 out += `      wwhite1_name: "Cool White"\n`;
-                out += `      wwhite1_temp: "153"\n`;
+                out += `      wwhite1_temp: "6500"\n`;
                 out += `      wwhite2_name: "Neutral White"\n`;
-                out += `      wwhite2_temp: "250"\n`;
+                out += `      wwhite2_temp: "4000"\n`;
                 out += `      wwhite3_name: "Warm White"\n`;
-                out += `      wwhite3_temp: "370"\n`;
+                out += `      wwhite3_temp: "2700"\n`;
               }
             } else if (dev.type === 'switch') {
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
