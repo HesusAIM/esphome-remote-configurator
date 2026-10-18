@@ -526,7 +526,7 @@ select { cursor: pointer; }
                 <label>Predefined Colors <span style="color:var(--fg3)">(shown in hold-OK submenu on remote)</span></label>
                 <div class="color-list" id="rgbColorList"></div>
                 <div class="color-list-footer">
-                  <span class="color-count-hint" id="colorCountHint">0 / 8 colors</span>
+                  <span class="color-count-hint" id="colorCountHint">0 / 9 colors</span>
                   <button class="btn-add-color" id="btnAddColor">＋ Add Color</button>
                 </div>
               </div>
@@ -1085,7 +1085,7 @@ select { cursor: pointer; }
 
           container.appendChild(row);
         });
-        $('colorCountHint').textContent = `${(colors || []).length} / 8 colors`;
+        $('colorCountHint').textContent = `${(colors || []).length} / 9 colors`;
 
         // Auto-open the preset grid on the last row (for newly added colors)
         if (autoOpenLast && container.lastChild) {
@@ -1097,7 +1097,7 @@ select { cursor: pointer; }
       $('btnAddColor').addEventListener('click', () => {
         if (!editingDevice) return;
         if (!editingDevice.colors) editingDevice.colors = [];
-        if (editingDevice.colors.length >= 8) { alert('Maximum 8 colors'); return; }
+        if (editingDevice.colors.length >= 9) { alert('Maximum 9 colors'); return; }
         // Seed with first preset so the swatch isn't blank
         const seed = DEFAULT_WLED_COLORS[0];
         editingDevice.colors.push({ name: seed.name, hex: seed.hex });
