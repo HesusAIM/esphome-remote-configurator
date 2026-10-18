@@ -263,13 +263,14 @@ select { cursor: pointer; }
 .toggle-label { font-size: 13px; color: var(--fg); }
 
 /* Type tabs */
-.type-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.type-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .type-tab { padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--fg2); font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; transition: all .15s; font-family: var(--sans); }
 .type-tab:hover { border-color: var(--border2); color: var(--fg); }
 .type-tab.active.light    { border-color: var(--warn);   color: var(--warn);   background: #d2992210; }
 .type-tab.active.switch   { border-color: var(--accent);  color: var(--accent);  background: var(--accent-bg); }
 .type-tab.active.climate  { border-color: #388bfd; color: #388bfd; background: #388bfd10; }
 .type-tab.active.shortcut { border-color: #9e6aff; color: #9e6aff; background: #9e6aff10; }
+.type-tab.active.wled     { border-color: #3dd68c; color: #3dd68c; background: #3dd68c10; }
 
 /* RGB color list */
 .color-list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
@@ -447,6 +448,7 @@ select { cursor: pointer; }
                 <button class="type-tab switch"         id="typeTabSwitch">🔌 Switch</button>
                 <button class="type-tab climate"        id="typeTabClimate">🌡️ Climate</button>
                 <button class="type-tab shortcut"       id="typeTabShortcut">⚡ Shortcut</button>
+                <button class="type-tab wled"           id="typeTabWled">🌈 WLED</button>
               </div>
             </div>
 
@@ -521,6 +523,32 @@ select { cursor: pointer; }
                 <div class="color-list-footer">
                   <span class="color-count-hint" id="colorCountHint">0 / 8 colors</span>
                   <button class="btn-add-color" id="btnAddColor">＋ Add Color</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="wledFields" style="display:none">
+              <div class="field-row">
+                <div class="field-group">
+                  <label>White Step <span style="color:var(--fg3)">(0–255 per press)</span></label>
+                  <input type="number" id="fWhiteStep" value="13" min="1" max="50">
+                  <span class="field-hint">13 ≈ 5 % of 255</span>
+                </div>
+                <div class="field-group">
+                  <label>Temp Step <span style="color:var(--fg3)">(mireds per press)</span></label>
+                  <input type="number" id="fWledTempStep" value="20" min="5" max="100">
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-group">
+                  <label>Temp Min <span style="color:var(--fg3)">(mireds · cool)</span></label>
+                  <input type="number" id="fTempMin" value="153" min="100" max="400">
+                  <span class="field-hint">153 ≈ 6 500 K daylight</span>
+                </div>
+                <div class="field-group">
+                  <label>Temp Max <span style="color:var(--fg3)">(mireds · warm)</span></label>
+                  <input type="number" id="fTempMax" value="500" min="200" max="600">
+                  <span class="field-hint">500 ≈ 2 000 K warm white</span>
                 </div>
               </div>
             </div>
@@ -923,8 +951,8 @@ select { cursor: pointer; }
       ];
 
       function addDevice(type = 'light') {
-        const colors = type === 'rgb' ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
-        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors };
+        const colors = (type === 'rgb' || type === 'wled') ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
+        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, white_step: 13, wled_temp_step: 20, temp_min: 153, temp_max: 500 };
         selectedIndex = null;
         populateEditor(editingDevice, true);
         renderDeviceList();
@@ -967,7 +995,11 @@ select { cursor: pointer; }
         });
         setIconUI('on', dev.icon_on || 'F06E8');
         setIconUI('off', dev.icon_off || 'F0336');
-        if (dev.type === 'rgb') renderColorList(dev.colors || []);
+        if (dev.type === 'rgb' || dev.type === 'wled') renderColorList(dev.colors || []);
+        $('fWhiteStep').value    = dev.white_step    || 13;
+        $('fWledTempStep').value = dev.wled_temp_step || 20;
+        $('fTempMin').value      = dev.temp_min      || 153;
+        $('fTempMax').value      = dev.temp_max      || 500;
         // Reset key manual flag when populating
         $('fKey').dataset.manual = dev.key ? '1' : '';
       }
@@ -1034,21 +1066,25 @@ select { cursor: pointer; }
         });
         const isShortcut = type === 'shortcut';
         const isRgb      = type === 'rgb';
-        const isLight    = type === 'light' || isRgb;
+        const isWled     = type === 'wled';
+        const isLight    = type === 'light' || isRgb || isWled;
         $('lightFields').style.display    = isLight ? '' : 'none';
-        $('rgbFields').style.display      = isRgb ? '' : 'none';
+        $('rgbFields').style.display      = (isRgb || isWled) ? '' : 'none';
+        $('wledFields').style.display     = isWled ? '' : 'none';
         $('climateFields').style.display  = type === 'climate' ? '' : 'none';
         $('shortcutFields').style.display = isShortcut ? '' : 'none';
         $('iconFields').style.display     = (type === 'climate' || isShortcut) ? 'none' : '';
         $('entityRowLabel').textContent   = isShortcut ? 'Automation ID' : 'Entity ID';
         $('fEntityId').placeholder        = isShortcut ? 'automation.wakey_on (or "none")' : 'light.my_light';
+        // Hide the RGB toggle for WLED (it always has RGB — the toggle is for plain lights only)
+        $('rgbToggle').parentElement.parentElement.style.display = isWled ? 'none' : '';
         // Sync RGB toggle to reflect actual type without firing the click handler
         const rgbOn = isRgb;
         $('rgbToggle').className = 'toggle' + (rgbOn ? ' on' : '');
         $('rgbToggleLabel').textContent = rgbOn ? 'Yes' : 'No';
         if (editingDevice) {
           editingDevice.type = type;
-          if (isRgb && !editingDevice.colors) {
+          if ((isRgb || isWled) && !editingDevice.colors) {
             editingDevice.colors = DEFAULT_RGB_COLORS.map(c => ({ ...c }));
             renderColorList(editingDevice.colors);
           }
@@ -1064,6 +1100,7 @@ select { cursor: pointer; }
       $('typeTabSwitch').addEventListener('click', () => setEditorTypeUI('switch'));
       $('typeTabClimate').addEventListener('click', () => setEditorTypeUI('climate'));
       $('typeTabShortcut').addEventListener('click', () => setEditorTypeUI('shortcut'));
+      $('typeTabWled').addEventListener('click', () => setEditorTypeUI('wled'));
 
       $('dimmableToggle').addEventListener('click', () => {
         dimmableState = !dimmableState;
@@ -1110,9 +1147,15 @@ select { cursor: pointer; }
           editingDevice.dimmable = dimmableState;
           editingDevice.hvac_modes = [...$$('#climateModes .mode-chip.active')].map(c => c.dataset.mode);
           if (editingDevice.hvac_modes.length === 0) editingDevice.hvac_modes = ['off'];
-          if (editingDevice.type === 'rgb') {
+          if (editingDevice.type === 'rgb' || editingDevice.type === 'wled') {
             // colors are tracked live via input listeners; just filter empty names
             editingDevice.colors = (editingDevice.colors || []).filter(c => c.name.trim() || c.hex);
+          }
+          if (editingDevice.type === 'wled') {
+            editingDevice.white_step    = parseInt($('fWhiteStep').value)    || 13;
+            editingDevice.wled_temp_step = parseInt($('fWledTempStep').value) || 20;
+            editingDevice.temp_min      = parseInt($('fTempMin').value)      || 153;
+            editingDevice.temp_max      = parseInt($('fTempMax').value)      || 500;
           }
         }
 
@@ -1375,6 +1418,7 @@ select { cursor: pointer; }
             const tpl = dev.type === 'climate' ? '_template_climate.yaml'
                       : dev.type === 'switch'  ? '_template_switch.yaml'
                       : dev.type === 'rgb'     ? '_template_rgb.yaml'
+                      : dev.type === 'wled'    ? '_template_wled.yaml'
                       :                          '_template_light.yaml';
             out += `\n  ${dev.key}: !include\n    file: espremote/devices/${tpl}\n    vars:\n`;
             out += `      key: "${dev.key}"\n      entity_id: "${dev.entity_id}"\n      display_name: "${dev.display_name}"\n`;
@@ -1382,7 +1426,7 @@ select { cursor: pointer; }
               out += `      brightness_step: "${dev.brightness_step || 5}"\n      dimmable: "${dev.dimmable ? 'true' : 'false'}"\n`;
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
-            } else if (dev.type === 'rgb') {
+            } else if (dev.type === 'rgb' || dev.type === 'wled') {
               out += `      brightness_step: "${dev.brightness_step || 5}"\n      dimmable: "${dev.dimmable ? 'true' : 'false'}"\n`;
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
@@ -1397,6 +1441,12 @@ select { cursor: pointer; }
                 out += `      color${idx + 1}_r: "${r}"\n`;
                 out += `      color${idx + 1}_g: "${g}"\n`;
                 out += `      color${idx + 1}_b: "${b}"\n`;
+              }
+              if (dev.type === 'wled') {
+                out += `      white_step: "${dev.white_step || 13}"\n`;
+                out += `      temp_min: "${dev.temp_min || 153}"\n`;
+                out += `      temp_max: "${dev.temp_max || 500}"\n`;
+                out += `      temp_step: "${dev.wled_temp_step || 20}"\n`;
               }
             } else if (dev.type === 'switch') {
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
