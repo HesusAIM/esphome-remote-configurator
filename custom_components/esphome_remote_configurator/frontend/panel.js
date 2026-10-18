@@ -275,7 +275,12 @@ select { cursor: pointer; }
 /* RGB color list */
 .color-list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
 .color-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; }
-.color-swatch { width: 32px; height: 32px; border: none; border-radius: 5px; cursor: pointer; padding: 0; background: none; flex-shrink: 0; }
+.swatch-wrap { position: relative; flex-shrink: 0; }
+.color-swatch-btn { width: 32px; height: 32px; border-radius: 5px; cursor: pointer; border: 2px solid var(--border); flex-shrink: 0; transition: border-color .15s; }
+.color-swatch-btn:hover { border-color: var(--accent); }
+.color-preset-grid { position: absolute; top: 38px; left: 0; z-index: 30; display: grid; grid-template-columns: repeat(3, 28px); gap: 5px; padding: 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 14px #0006; }
+.preset-swatch { width: 28px; height: 28px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; transition: border-color .1s, transform .1s; }
+.preset-swatch:hover { border-color: #fff8; transform: scale(1.12); }
 .color-name { flex: 1; font-family: var(--sans); font-size: 12px; background: transparent; border: none; color: var(--fg); outline: none; min-width: 0; }
 .color-name::placeholder { color: var(--fg3); }
 .color-name:focus { color: var(--fg); }
@@ -1025,38 +1030,84 @@ select { cursor: pointer; }
         return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
       }
 
-      function renderColorList(colors) {
+      // Close all open preset grids (click-outside handler)
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.swatch-wrap')) {
+          $$('.color-preset-grid').forEach(g => g.style.display = 'none');
+        }
+      });
+
+      function renderColorList(colors, autoOpenLast = false) {
         const container = $('rgbColorList');
         container.innerHTML = '';
         (colors || []).forEach((color, i) => {
           const row = document.createElement('div');
           row.className = 'color-row';
+          const presetSwatches = DEFAULT_WLED_COLORS.map(p =>
+            `<div class="preset-swatch" style="background:${p.hex}" title="${esc(p.name)}" data-hex="${esc(p.hex)}" data-name="${esc(p.name)}"></div>`
+          ).join('');
           row.innerHTML = `
-            <input type="color" class="color-swatch" value="${esc(color.hex || '#ffffff')}" title="Pick color">
-            <input type="text" class="color-name" placeholder="e.g. Warm White" value="${esc(color.name || '')}">
+            <div class="swatch-wrap">
+              <div class="color-swatch-btn" style="background:${esc(color.hex || '#0000ff')}" title="Choose color"></div>
+              <div class="color-preset-grid" style="display:none">${presetSwatches}</div>
+            </div>
+            <input type="text" class="color-name" placeholder="Color name" value="${esc(color.name || '')}">
             <button class="color-del-btn" title="Remove">✕</button>`;
-          row.querySelector('.color-swatch').addEventListener('input', e => {
-            if (editingDevice && editingDevice.colors[i]) editingDevice.colors[i].hex = e.target.value;
+
+          const swatchBtn  = row.querySelector('.color-swatch-btn');
+          const presetGrid = row.querySelector('.color-preset-grid');
+          const nameInput  = row.querySelector('.color-name');
+
+          swatchBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            const open = presetGrid.style.display !== 'none';
+            // Close any other open grids first
+            $$('.color-preset-grid').forEach(g => g.style.display = 'none');
+            presetGrid.style.display = open ? 'none' : '';
           });
-          row.querySelector('.color-name').addEventListener('input', e => {
+
+          row.querySelectorAll('.preset-swatch').forEach(s => {
+            s.addEventListener('click', e => {
+              e.stopPropagation();
+              if (editingDevice && editingDevice.colors[i]) {
+                editingDevice.colors[i].hex  = s.dataset.hex;
+                editingDevice.colors[i].name = s.dataset.name;
+              }
+              swatchBtn.style.background = s.dataset.hex;
+              nameInput.value = s.dataset.name;
+              presetGrid.style.display = 'none';
+            });
+          });
+
+          nameInput.addEventListener('input', e => {
             if (editingDevice && editingDevice.colors[i]) editingDevice.colors[i].name = e.target.value;
           });
+
           row.querySelector('.color-del-btn').addEventListener('click', () => {
             if (!editingDevice) return;
             editingDevice.colors.splice(i, 1);
             renderColorList(editingDevice.colors);
           });
+
           container.appendChild(row);
         });
         $('colorCountHint').textContent = `${(colors || []).length} / 8 colors`;
+
+        // Auto-open the preset grid on the last row (for newly added colors)
+        if (autoOpenLast && container.lastChild) {
+          const grid = container.lastChild.querySelector('.color-preset-grid');
+          if (grid) grid.style.display = '';
+        }
       }
 
       $('btnAddColor').addEventListener('click', () => {
         if (!editingDevice) return;
         if (!editingDevice.colors) editingDevice.colors = [];
         if (editingDevice.colors.length >= 8) { alert('Maximum 8 colors'); return; }
-        editingDevice.colors.push({ name: '', hex: '#ffffff' });
-        renderColorList(editingDevice.colors);
+        // Seed with first preset so the swatch isn't blank
+        const seed = DEFAULT_WLED_COLORS[0];
+        editingDevice.colors.push({ name: seed.name, hex: seed.hex });
+        renderColorList(editingDevice.colors, true);   // autoOpenLast = true
       });
 
       function setRgbToggle(on) {
