@@ -267,11 +267,9 @@ select { cursor: pointer; }
 .type-tab { padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--fg2); font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; transition: all .15s; font-family: var(--sans); }
 .type-tab:hover { border-color: var(--border2); color: var(--fg); }
 .type-tab.active.light    { border-color: var(--warn);   color: var(--warn);   background: #d2992210; }
-.type-tab.active.rgb      { border-color: #e05cad; color: #e05cad; background: #e05cad12; }
 .type-tab.active.switch   { border-color: var(--accent);  color: var(--accent);  background: var(--accent-bg); }
 .type-tab.active.climate  { border-color: #388bfd; color: #388bfd; background: #388bfd10; }
 .type-tab.active.shortcut { border-color: #9e6aff; color: #9e6aff; background: #9e6aff10; }
-.type-tab.shortcut-tab    { grid-column: 1 / -1; }
 
 /* RGB color list */
 .color-list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
@@ -446,10 +444,9 @@ select { cursor: pointer; }
               <label>Device Type</label>
               <div class="type-tabs">
                 <button class="type-tab active light"   id="typeTabLight">💡 Light</button>
-                <button class="type-tab rgb"            id="typeTabRgb">🌈 RGB</button>
                 <button class="type-tab switch"         id="typeTabSwitch">🔌 Switch</button>
                 <button class="type-tab climate"        id="typeTabClimate">🌡️ Climate</button>
-                <button class="type-tab shortcut shortcut-tab" id="typeTabShortcut">⚡ Shortcut</button>
+                <button class="type-tab shortcut"       id="typeTabShortcut">⚡ Shortcut</button>
               </div>
             </div>
 
@@ -485,6 +482,14 @@ select { cursor: pointer; }
                     <span class="toggle-label" id="dimmableLabel">Yes</span>
                   </div>
                 </div>
+              </div>
+              <div class="field-group">
+                <label>RGB Light</label>
+                <div class="toggle-row" style="margin-top:8px">
+                  <div class="toggle" id="rgbToggle"></div>
+                  <span class="toggle-label" id="rgbToggleLabel">No</span>
+                </div>
+                <span class="field-hint">When enabled, hold OK on the remote opens a color submenu</span>
               </div>
             </div>
 
@@ -1007,20 +1012,40 @@ select { cursor: pointer; }
         renderColorList(editingDevice.colors);
       });
 
+      function setRgbToggle(on) {
+        $('rgbToggle').className = 'toggle' + (on ? ' on' : '');
+        $('rgbToggleLabel').textContent = on ? 'Yes' : 'No';
+        $('rgbFields').style.display = on ? '' : 'none';
+        if (editingDevice) {
+          editingDevice.type = on ? 'rgb' : 'light';
+          if (on && !editingDevice.colors) {
+            editingDevice.colors = DEFAULT_RGB_COLORS.map(c => ({ ...c }));
+            renderColorList(editingDevice.colors);
+          }
+        }
+      }
+
       function setEditorTypeUI(type) {
+        // 'rgb' maps to the light tab — it's a light with the RGB toggle on
+        const tabType = (type === 'rgb') ? 'light' : type;
         $$('.type-tab').forEach(b => {
           b.classList.remove('active');
-          if (b.id === 'typeTab' + cap(type)) b.classList.add('active');
+          if (b.id === 'typeTab' + cap(tabType)) b.classList.add('active');
         });
         const isShortcut = type === 'shortcut';
         const isRgb      = type === 'rgb';
-        $('lightFields').style.display    = (type === 'light' || isRgb) ? '' : 'none';
+        const isLight    = type === 'light' || isRgb;
+        $('lightFields').style.display    = isLight ? '' : 'none';
         $('rgbFields').style.display      = isRgb ? '' : 'none';
         $('climateFields').style.display  = type === 'climate' ? '' : 'none';
         $('shortcutFields').style.display = isShortcut ? '' : 'none';
         $('iconFields').style.display     = (type === 'climate' || isShortcut) ? 'none' : '';
         $('entityRowLabel').textContent   = isShortcut ? 'Automation ID' : 'Entity ID';
-        $('fEntityId').placeholder        = isShortcut ? 'automation.wakey_on (or "none")' : (isRgb ? 'light.my_rgb_light' : 'light.my_light');
+        $('fEntityId').placeholder        = isShortcut ? 'automation.wakey_on (or "none")' : 'light.my_light';
+        // Sync RGB toggle to reflect actual type without firing the click handler
+        const rgbOn = isRgb;
+        $('rgbToggle').className = 'toggle' + (rgbOn ? ' on' : '');
+        $('rgbToggleLabel').textContent = rgbOn ? 'Yes' : 'No';
         if (editingDevice) {
           editingDevice.type = type;
           if (isRgb && !editingDevice.colors) {
@@ -1030,8 +1055,12 @@ select { cursor: pointer; }
         }
       }
 
+      $('rgbToggle').addEventListener('click', () => {
+        const isNowRgb = !$('rgbToggle').classList.contains('on');
+        setRgbToggle(isNowRgb);
+      });
+
       $('typeTabLight').addEventListener('click', () => setEditorTypeUI('light'));
-      $('typeTabRgb').addEventListener('click', () => setEditorTypeUI('rgb'));
       $('typeTabSwitch').addEventListener('click', () => setEditorTypeUI('switch'));
       $('typeTabClimate').addEventListener('click', () => setEditorTypeUI('climate'));
       $('typeTabShortcut').addEventListener('click', () => setEditorTypeUI('shortcut'));
