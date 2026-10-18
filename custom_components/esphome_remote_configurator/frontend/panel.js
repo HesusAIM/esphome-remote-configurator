@@ -1388,13 +1388,16 @@ select { cursor: pointer; }
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
               const colors = (dev.colors || []).filter(c => c.name.trim() || c.hex);
               out += `      color_count: "${colors.length}"\n`;
-              colors.forEach((c, idx) => {
+              // Always emit all 8 slots — template references all of them to avoid
+              // "undefined substitution" errors when color_count < 8
+              for (let idx = 0; idx < 8; idx++) {
+                const c = colors[idx] || { name: '', hex: '#000000' };
                 const [r, g, b] = hexToRgb(c.hex);
-                out += `      color${idx + 1}_name: "${c.name.trim() || `Color ${idx + 1}`}"\n`;
+                out += `      color${idx + 1}_name: "${c.name.trim() || (idx < colors.length ? `Color ${idx + 1}` : 'unused')}"\n`;
                 out += `      color${idx + 1}_r: "${r}"\n`;
                 out += `      color${idx + 1}_g: "${g}"\n`;
                 out += `      color${idx + 1}_b: "${b}"\n`;
-              });
+              }
             } else if (dev.type === 'switch') {
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
               out += `      icon_off: "\\U000F${(dev.icon_off || '0336').replace(/^F/, '').toUpperCase()}"\n`;
