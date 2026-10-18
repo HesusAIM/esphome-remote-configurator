@@ -535,25 +535,20 @@ select { cursor: pointer; }
             <div id="wledFields" style="display:none">
               <div class="field-row">
                 <div class="field-group">
-                  <label>White Step <span style="color:var(--fg3)">(0–255 per press)</span></label>
-                  <input type="number" id="fWhiteStep" value="13" min="1" max="50">
-                  <span class="field-hint">13 ≈ 5 % of 255</span>
-                </div>
-                <div class="field-group">
-                  <label>Temp Step <span style="color:var(--fg3)">(mireds per press)</span></label>
-                  <input type="number" id="fWledTempStep" value="20" min="5" max="100">
+                  <label>Temp Step <span style="color:var(--fg3)">(K per press)</span></label>
+                  <input type="number" id="fWledTempStep" value="200" min="50" max="1000">
                 </div>
               </div>
               <div class="field-row">
                 <div class="field-group">
-                  <label>Temp Min <span style="color:var(--fg3)">(mireds · cool)</span></label>
-                  <input type="number" id="fTempMin" value="153" min="100" max="400">
-                  <span class="field-hint">153 ≈ 6 500 K daylight</span>
+                  <label>Temp Min <span style="color:var(--fg3)">(K · warm)</span></label>
+                  <input type="number" id="fTempMin" value="2000" min="1000" max="4000">
+                  <span class="field-hint">2 000 K = warm white</span>
                 </div>
                 <div class="field-group">
-                  <label>Temp Max <span style="color:var(--fg3)">(mireds · warm)</span></label>
-                  <input type="number" id="fTempMax" value="500" min="200" max="600">
-                  <span class="field-hint">500 ≈ 2 000 K warm white</span>
+                  <label>Temp Max <span style="color:var(--fg3)">(K · cool)</span></label>
+                  <input type="number" id="fTempMax" value="6500" min="3000" max="10000">
+                  <span class="field-hint">6 500 K = daylight</span>
                 </div>
               </div>
             </div>
@@ -972,7 +967,7 @@ select { cursor: pointer; }
       function addDevice(type = 'light') {
         const colors = type === 'wled' ? DEFAULT_WLED_COLORS.map(c => ({ ...c }))
                      : (type === 'rgb') ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
-        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, white_step: 13, wled_temp_step: 200, temp_min: 2000, temp_max: 6500 };
+        editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, wled_temp_step: 200, temp_min: 2000, temp_max: 6500 };
         selectedIndex = null;
         populateEditor(editingDevice, true);
         renderDeviceList();
@@ -1016,7 +1011,6 @@ select { cursor: pointer; }
         setIconUI('on', dev.icon_on || 'F06E8');
         setIconUI('off', dev.icon_off || 'F0336');
         if (dev.type === 'rgb' || dev.type === 'wled') renderColorList(dev.colors || []);
-        $('fWhiteStep').value    = dev.white_step    || 13;
         $('fWledTempStep').value = dev.wled_temp_step || 200;
         $('fTempMin').value      = dev.temp_min      || 2000;
         $('fTempMax').value      = dev.temp_max      || 6500;
@@ -1218,7 +1212,6 @@ select { cursor: pointer; }
             editingDevice.colors = (editingDevice.colors || []).filter(c => c.name.trim() || c.hex);
           }
           if (editingDevice.type === 'wled') {
-            editingDevice.white_step    = parseInt($('fWhiteStep').value)    || 13;
             editingDevice.wled_temp_step = parseInt($('fWledTempStep').value) || 200;
             editingDevice.temp_min      = parseInt($('fTempMin').value)      || 2000;
             editingDevice.temp_max      = parseInt($('fTempMax').value)      || 6500;
@@ -1509,7 +1502,6 @@ select { cursor: pointer; }
                 out += `      color${idx + 1}_b: "${b}"\n`;
               }
               if (dev.type === 'wled') {
-                out += `      white_step: "${dev.white_step || 13}"\n`;
                 out += `      temp_min: "${dev.temp_min || 2000}"\n`;
                 out += `      temp_max: "${dev.temp_max || 6500}"\n`;
                 out += `      temp_step: "${dev.wled_temp_step || 200}"\n`;
