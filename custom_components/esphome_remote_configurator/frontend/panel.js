@@ -950,8 +950,23 @@ select { cursor: pointer; }
         { name: 'Purple',     hex: '#8800ff' },
       ];
 
+      // WLED default color presets (exact RGB as specified — white presets are added
+      // automatically by the template and are NOT in this list)
+      const DEFAULT_WLED_COLORS = [
+        { name: 'Blue',      hex: '#0000ff' },
+        { name: 'Green',     hex: '#00ff00' },
+        { name: 'Magenta',   hex: '#ff0050' },
+        { name: 'Orange',    hex: '#ff5000' },
+        { name: 'Pink',      hex: '#ff0064' },
+        { name: 'Purple',    hex: '#ff00c8' },
+        { name: 'Red',       hex: '#ff0000' },
+        { name: 'Turquoise', hex: '#00ffa0' },
+        { name: 'Yellow',    hex: '#ff8c00' },
+      ];
+
       function addDevice(type = 'light') {
-        const colors = (type === 'rgb' || type === 'wled') ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
+        const colors = type === 'wled' ? DEFAULT_WLED_COLORS.map(c => ({ ...c }))
+                     : (type === 'rgb') ? DEFAULT_RGB_COLORS.map(c => ({ ...c })) : [];
         editingDevice = { key: '', type, entity_id: '', display_name: '', brightness_step: 5, dimmable: true, icon_on: 'F06E8', icon_off: 'F0336', hvac_modes: ['off'], temp_step: 1, button_id: 'sw1', automation_id: '', colors, white_step: 13, wled_temp_step: 20, temp_min: 153, temp_max: 500 };
         selectedIndex = null;
         populateEditor(editingDevice, true);
@@ -1447,6 +1462,13 @@ select { cursor: pointer; }
                 out += `      temp_min: "${dev.temp_min || 153}"\n`;
                 out += `      temp_max: "${dev.temp_max || 500}"\n`;
                 out += `      temp_step: "${dev.wled_temp_step || 20}"\n`;
+                // White presets — fixed; not user-editable in the configurator
+                out += `      wwhite1_name: "Cool White"\n`;
+                out += `      wwhite1_temp: "153"\n`;
+                out += `      wwhite2_name: "Neutral White"\n`;
+                out += `      wwhite2_temp: "250"\n`;
+                out += `      wwhite3_name: "Warm White"\n`;
+                out += `      wwhite3_temp: "370"\n`;
               }
             } else if (dev.type === 'switch') {
               out += `      icon_on: "\\U000F${(dev.icon_on || '06E8').replace(/^F/, '').toUpperCase()}"\n`;
